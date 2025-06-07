@@ -1,0 +1,14 @@
+# Don't commit sensitive environment variables
+.env
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore FAISS index if it's large or auto-generated
+krupal_faiss/
+
+# Ignore VSCode and system-specific files (optional but useful)
+.vscode/
+.DS_Store
+Thumbs.db
