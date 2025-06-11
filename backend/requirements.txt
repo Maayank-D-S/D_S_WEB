@@ -12,3 +12,5 @@ jinja2
 google-generativeai
 feedparser
 certifi
+livekit-agents
+livekit-plugins-assemblyai
