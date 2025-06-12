@@ -4,11 +4,17 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.messages import HumanMessage
 import os
 from dotenv import load_dotenv
+from langchain.memory import ConversationBufferMemory
+from langchain.schema import AIMessage
+
 
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = "gpt-4.1-mini"
+
+if "chat_memory" not in st.session_state:
+    st.session_state.chat_memory = ConversationBufferMemory(return_messages=True)
 
 llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KEY)
 embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -28,7 +34,10 @@ IMAGE_MAP = {
 
 
 def ask_llm(prompt: str) -> str:
-    response = llm.invoke([HumanMessage(content=prompt)])
+    history = st.session_state.chat_memory.load_memory_variables({})["history"]
+    response = llm.invoke(history + [HumanMessage(content=prompt)])
+    st.session_state.chat_memory.chat_memory.add_user_message(prompt)
+    st.session_state.chat_memory.chat_memory.add_ai_message(response.content)
     return response.content.strip()
 
 
@@ -83,11 +92,28 @@ INSTRUCTIONS:
 4. Emphasize project benefits and always position it as a smart investment decision.
 5. Use bullet points or short sections if listing benefits.
 6. If asked about layout, mention items like entrance gate, internal roads, street lights, drainage, and common infrastructure.
-7. If asked about plot sizes, give a **range** (lowest to highest in sq ft), rounded to the nearest 100.
-8. If the question involves any of these terms: {', '.join(IMAGE_MAP.keys())}, add at the end:
-IMAGE: <room name>
-9. Do **not** say “I don't know” — be confident and helpful.
-10. Keep answers under **5 sentences**, unless bullet points are clearer.
+7. If asked about plot sizes, give area in **sq yards** and in a **range** (lowest to highest in sq ft), rounded to the nearest 100 like if size is 269.99 yards roundoff to 270
+8. If they ask about pricing or plot cost, use the context to extract **price per square yard** and **development charges**. Multiply price per sq yard with area to get base price. Then **add development charges** per sq yard × area.
+
+Example:
+For 270 sq yards at ₹8500 (BSP) + ₹1500 (Dev), total = (270 × 8500) + (270 × 1500)
+
+Respond with:
+- Phase: Pre-Launch or Launch
+- Base Sale Price: ₹x
+- Development Charges: ₹y
+- Total Price: ₹z
+tell about both phases
+
+
+
+9. If the question involves any of these terms: {', '.join(IMAGE_MAP.keys())}, add at the end:
+   IMAGE: <room name>
+10. Do **not** say “I don't know” — be confident and helpful.
+11. Breakdown the pricing to explain like base sale price and then development charges
+12.Also all legal documents for projct are available so do mention it as well whereever you see.
+
+13. Keep answers under **5 sentences**, unless bullet points are clearer.
 
 CONTEXT (for Krupal Habitat):
 {context}
@@ -117,6 +143,11 @@ st.set_page_config(page_title="Krupal Habitat Chatbot", layout="centered")
 st.title("🏡 Krupal Habitat Chatbot")
 
 query = st.text_input("Ask your question:")
+
+if st.button("🔁 Reset Conversation"):
+    st.session_state.chat_memory = ConversationBufferMemory(return_messages=True)
+    st.rerun()
+
 
 if query:
     result = fetch_response(query)
