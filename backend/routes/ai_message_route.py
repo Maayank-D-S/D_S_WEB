@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from models import AIMessage
 from database import db
+from OPENAI_CHATBOT.chatbot import fetch_response  
 # from ai_agent.agent import get_ai_response  # Your custom logic
 
 ai_bp = Blueprint('ai_routes', __name__)
@@ -21,7 +22,7 @@ def new_query():
     db.session.add(user_msg)
 
     # Get AI response
-    # ai_response = get_ai_response(user_message)  # your LLM call
+    ai_response = fetch_response(user_message)  # your LLM call
 
     # Save AI response
     ai_msg = AIMessage(user_id=user_id, session_id=session_id, role='ai', message=ai_response)
