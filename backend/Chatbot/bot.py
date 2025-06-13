@@ -241,7 +241,7 @@ If it violates, reply only with "BLOCK". Otherwise, reply only with "ALLOW".
 # Greeting/vague detection
 def is_greeting_or_vague_llm(text, memory):
     prompt = f"""
-Classify the user's message. If it's a greeting or vague unrelated message like "hi", "hello", "good morning", or anything not about the project, respond with "GREETING". Otherwise respond with "QUERY".
+Classify the user's message. If it's a greeting or vague unrelated message like "hi", "hello", "good morning", or anything not about the project, respond with "Greetings". Otherwise respond with "QUERY".
 
 Message: "{text}"
 Category:"""
