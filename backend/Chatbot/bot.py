@@ -5,6 +5,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.messages import HumanMessage
 from langchain.schema import AIMessage
 from langchain.memory import ConversationBufferMemory
+from collections import deque
 
 # Load env vars
 load_dotenv()
@@ -17,6 +18,13 @@ embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 # In-memory store for session memory (per-user)
 MEMORY_STORE = {}
+
+
+def get_user_memory(user_id):
+    if user_id not in MEMORY_STORE:
+        MEMORY_STORE[user_id] = deque(maxlen=20)
+    return MEMORY_STORE[user_id]
+
 
 # Prompt templates
 KRUPAL_PROMPT = """
@@ -132,6 +140,40 @@ USER QUESTION:
 
 ANSWER:
 """
+FIREFLY_PROMPT = """
+You are a helpful and friendly real estate sales agent for **Firefly Homes**, a premium residential project in Lansdowne, Uttarakhand.
+
+Always answer based on the provided context. If users ask general questions about Lansdowne or Uttarakhand, use your knowledge.
+
+🏡 **Project Details**
+- Scenic location in Lansdowne
+- AQI 25–30, clean air, lush greenery
+- Modern infrastructure: internet, mobile, roads
+- Nearby: Sona River, Corbett Safari, War Memorial, Bulla Lake, Tarkeshwar Dham
+
+ **Project Amenities**
+- Gated community, 24x7 security, CCTV
+- Café & restaurant, clubhouse, kids' area
+- Well-furnished rooms: living room, bedroom, modular kitchen, en-suites
+
+🧠 **Tone**
+- Confident, clear, and persuasive — like a top real estate sales rep
+- Never say "I don’t know", always offer help
+- Use bullet points where needed and keep it short (max 5 sentences)
+
+🖼️ **Images**
+If any of these are mentioned: {keywords}, add:
+IMAGE: <room name>
+
+CONTEXT:
+{context}
+
+QUESTION:
+{query}
+
+ANSWER:
+
+"""
 
 
 # Project configuration loader
@@ -142,10 +184,10 @@ def get_project_config(project_name):
                 "krupaldb_faiss", embedding, allow_dangerous_deserialization=True
             ),
             "image_map": {
-                "bedroom": "images/bedroom.jpeg",
-                "house": "images/house.jpeg",
-                "clubhouse": "images/clubhouse.jpeg",
-                "krupal habitat": "images/krupalhabitat",
+                "bedroom": "images_krupal/bedroom.jpeg",
+                "house": "images_krupal/house.jpeg",
+                "clubhouse": "images_krupal/clubhouse.jpeg",
+                "krupal habitat": "images_krupal/krupalhabitat",
             },
             "prompt_template": KRUPAL_PROMPT,
         }
@@ -155,31 +197,32 @@ def get_project_config(project_name):
                 "ramvan_villas_faiss", embedding, allow_dangerous_deserialization=True
             ),
             "image_map": {
-                "bedroom": "images/bedroom.jpeg",
-                "living room": "images/livingroom.jpeg",
-                "dining room": "images/bedroom.jpeg",
-                "villa": "images/house.jpeg",
-                "kitchen": "images/kitchen.jpeg",
+                "bedroom": "images_ramvan/bedroom.jpeg",
+                "living room": "images_ramvan/livingroom.jpeg",
+                "dining room": "images_ramvan/bedroom.jpeg",
+                "villa": "images_ramvan/house.jpeg",
+                "kitchen": "images_ramvan/kitchen.jpeg",
             },
             "prompt_template": RAMVAN_PROMPT,
+        }
+    elif project_name == "Firefly Homes":
+        return {
+            "vectorstore": FAISS.load_local(
+                "firefly_faiss", embedding, allow_dangerous_deserialization=True
+            ),
+            "image_map": {"clunhouse": "firefly_images/clunhouse.jpg"},
+            "prompt_template": FIREFLY_PROMPT,
         }
     else:
         raise ValueError("Unknown project selected")
 
 
-# Initialize memory per user
-def get_user_memory(user_id):
-    if user_id not in MEMORY_STORE:
-        MEMORY_STORE[user_id] = ConversationBufferMemory(return_messages=True)
-    return MEMORY_STORE[user_id]
-
-
 # LLM invocation
-def ask_llm(prompt, memory):
-    history = memory.load_memory_variables({})["history"]
-    response = llm.invoke(history + [HumanMessage(content=prompt)])
-    memory.chat_memory.add_user_message(prompt)
-    memory.chat_memory.add_ai_message(response.content)
+def ask_llm(prompt, memory_deque):
+    messages = list(memory_deque) + [HumanMessage(content=prompt)]
+    response = llm.invoke(messages)
+    memory_deque.append(HumanMessage(content=prompt))
+    memory_deque.append(AIMessage(content=response.content))
     return response.content.strip()
 
 
