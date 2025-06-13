@@ -1,32 +1,22 @@
 import os
 from dotenv import load_dotenv
-from langchain_community.vectorstores import FAISS
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_core.messages import HumanMessage
-from langchain.schema import AIMessage
-from langchain.memory import ConversationBufferMemory
 from collections import deque
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.messages import HumanMessage, AIMessage
+from langchain_community.vectorstores import FAISS
 
-# Load env vars
+# ──────────────────────────────────────────────────────────────────────────────
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = "gpt-4.1-mini"
+OPENAI_MODEL = "gpt-4o-mini"
 
-# Shared LLM and Embeddings
 llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KEY)
 embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
-# In-memory store for session memory (per-user)
-MEMORY_STORE = {}
+# ──────────────────────────────────────────────────────────────────────────────
+# Prompt templates – note the placeholder *{image_keywords}*
+# (Repeats trimmed for brevity; keep yours exactly as required.)
 
-
-def get_user_memory(user_id):
-    if user_id not in MEMORY_STORE:
-        MEMORY_STORE[user_id] = deque(maxlen=20)
-    return MEMORY_STORE[user_id]
-
-
-# Prompt templates
 KRUPAL_PROMPT = """
 You are a confident, human-like, and persuasive **real estate sales agent** for *Krupal Habitat* — a premium plotting project located in **Dholera, Gujarat**. Your job is to help clients understand the opportunity and **convince them** why investing in Krupal Habitat is smart and future-focused.
 
@@ -61,9 +51,7 @@ Answer the user's question by following these rules:
 13. Always mention that **all legal documents are available** for review.
 14. Never say "I don’t know" — instead, offer to connect them to the sales team (which is you).
 
-🖼️ **Images**
-15. If the query mentions one of these: {', '.join(IMAGE_MAP.keys())}, end your answer with:
-   `IMAGE: <room name>`
+
 
 🧠 **Tone & Limits**
 16. Always be helpful, confident, and proactive — like a top-performing sales executive.
@@ -71,17 +59,21 @@ Answer the user's question by following these rules:
 
 ---
 
-CONTEXT (from Krupal Habitat project):
+If the query mentions one of these: {image_keywords}, end your answer with:
+IMAGE: <room name>
+
+
+CONTEXT:
 {context}
 
-USER QUESTION:
+USER:
 {query}
 
 ANSWER:
-
 """
+
 RAMVAN_PROMPT = """
-You are a persuasive, confident, and friendly **real estate sales executive** for **Ramvan Villas** — a premium gated residential project in **Ramnagar, Uttarakhand**, near Jim Corbett National Park.
+You are a sales executive for *Ramvan Villas* in Ramnagar.You are a persuasive, confident, and friendly **real estate sales executive** for **Ramvan Villas** — a premium gated residential project in **Ramnagar, Uttarakhand**, near Jim Corbett National Park.
 
 Follow these rules when responding:
 
@@ -128,19 +120,24 @@ for any questions on ramnagar use your own knowledge
 - Never say “I don’t know” — always guide or offer assistance
 - Use bullet points and stay under 5 sentences if possible
 
-**Images**
-If any of these are mentioned: {', '.join(IMAGE_MAP.keys())}, add:
+
+
+If the query mentions one of these: {image_keywords}, end your answer with:
 IMAGE: <room name>
+
 
 CONTEXT:
 {context}
 
-USER QUESTION:
+USER:
 {query}
 
 ANSWER:
 """
+
 FIREFLY_PROMPT = """
+
+
 You are a helpful and friendly real estate sales agent for **Firefly Homes**, a premium residential project in Lansdowne, Uttarakhand.
 
 Always answer based on the provided context. If users ask general questions about Lansdowne or Uttarakhand, use your knowledge.
@@ -161,127 +158,127 @@ Always answer based on the provided context. If users ask general questions abou
 - Never say "I don’t know", always offer help
 - Use bullet points where needed and keep it short (max 5 sentences)
 
-🖼️ **Images**
-If any of these are mentioned: {keywords}, add:
+If the query mentions one of these: {image_keywords}, end your answer with:
 IMAGE: <room name>
 
 CONTEXT:
 {context}
 
-QUESTION:
+USER:
 {query}
 
 ANSWER:
-
 """
 
 
-# Project configuration loader
-def get_project_config(project_name):
-    if project_name == "Krupal Habitat":
-        return {
-            "vectorstore": FAISS.load_local(
+# ──────────────────────────────────────────────────────────────────────────────
+def _project_cfg(name: str):
+    if name == "Krupal Habitat":
+        return dict(
+            vector=FAISS.load_local(
                 "krupaldb_faiss", embedding, allow_dangerous_deserialization=True
             ),
-            "image_map": {
+            images={
                 "bedroom": "images_krupal/bedroom.jpeg",
                 "house": "images_krupal/house.jpeg",
                 "clubhouse": "images_krupal/clubhouse.jpeg",
                 "krupal habitat": "images_krupal/krupalhabitat",
             },
-            "prompt_template": KRUPAL_PROMPT,
-        }
-    elif project_name == "Ramvan Villas":
-        return {
-            "vectorstore": FAISS.load_local(
+            tpl=KRUPAL_PROMPT,
+        )
+    if name == "Ramvan Villas":
+        return dict(
+            vector=FAISS.load_local(
                 "ramvan_villas_faiss", embedding, allow_dangerous_deserialization=True
             ),
-            "image_map": {
+            images={
                 "bedroom": "images_ramvan/bedroom.jpeg",
                 "living room": "images_ramvan/livingroom.jpeg",
-                "dining room": "images_ramvan/bedroom.jpeg",
+                "dining room": "images_ramvan/dining.jpeg",
                 "villa": "images_ramvan/house.jpeg",
                 "kitchen": "images_ramvan/kitchen.jpeg",
             },
-            "prompt_template": RAMVAN_PROMPT,
-        }
-    elif project_name == "Firefly Homes":
-        return {
-            "vectorstore": FAISS.load_local(
+            tpl=RAMVAN_PROMPT,
+        )
+    if name == "Firefly Homes":
+        return dict(
+            vector=FAISS.load_local(
                 "firefly_faiss", embedding, allow_dangerous_deserialization=True
             ),
-            "image_map": {"clunhouse": "firefly_images/clunhouse.jpg"},
-            "prompt_template": FIREFLY_PROMPT,
-        }
-    else:
-        raise ValueError("Unknown project selected")
+            images={"clubhouse": "firefly_images/clubhouse.jpg"},
+            tpl=FIREFLY_PROMPT,
+        )
+    raise ValueError("Unknown project")
 
 
-# LLM invocation
-def ask_llm(prompt, memory_deque):
-    messages = list(memory_deque) + [HumanMessage(content=prompt)]
-    response = llm.invoke(messages)
-    memory_deque.append(HumanMessage(content=prompt))
-    memory_deque.append(AIMessage(content=response.content))
-    return response.content.strip()
+# ──────────────────────────────────────────────────────────────────────────────
+# tiny helper for LLM calls with explicit history
+def _ask_llm(prompt: str, history: list[dict]):
+    messages = []
+    for h in history:
+        if h["role"] == "user":
+            messages.append(HumanMessage(content=h["content"]))
+        else:
+            messages.append(AIMessage(content=h["content"]))
+    messages.append(HumanMessage(content=prompt))
+
+    return llm.invoke(messages).content.strip()
+
+    # wrapper filters -------------------------------------------------------------
+    # def _violates_policy(text: str, history):
+    pol_prompt = f"""You are a content-filter. Reply ONLY "BLOCK" or "ALLOW".
+Text: "{text}" """
+    return _ask_llm(pol_prompt, history).upper() == "BLOCK"
 
 
-# Policy filter
-def violates_policy_llm(text, memory):
-    prompt = f"""
-You are a content filter. Check if the following text contains any references to religion, sex, politics, terrorism, violence, or drugs.
-
-Text: "{text}"
-
-If it violates, reply only with "BLOCK". Otherwise, reply only with "ALLOW".
-"""
-    return ask_llm(prompt, memory).upper() == "BLOCK"
-
-
-# Greeting/vague detection
-def is_greeting_or_vague_llm(text, memory):
-    prompt = f"""
-Classify the user's message. If it's a greeting or vague unrelated message like "hi", "hello", "good morning", or anything not about the project, respond with "Greetings". Otherwise respond with "QUERY".
-
-Message: "{text}"
-Category:"""
-    return ask_llm(prompt, memory).upper() == "GREETING"
-
-
-# Main function to respond to message
-def get_chat_response(user_id, project_name, user_input):
-    config = get_project_config(project_name)
-    memory = get_user_memory(user_id)
-    vectorstore = config["vectorstore"]
-    image_map = config["image_map"]
-    base_prompt = config["prompt_template"]
-
-    if is_greeting_or_vague_llm(user_input, memory):
-        return {
-            "text": f"Hi! I'm your assistant for {project_name}. Ask me anything.",
-            "image_url": None,
-        }
-
-    if violates_policy_llm(user_input, memory):
-        return {"text": "Query blocked due to policy.", "image_url": None}
-
-    docs = vectorstore.similarity_search(user_input, k=5)
-    context = "\n".join([doc.page_content for doc in docs])
-
-    prompt = base_prompt.format(
-        context=context, query=user_input, image_keywords=", ".join(image_map.keys())
+def _is_greeting(text: str, history):
+    g_prompt = (
+        f"""Reply "GREETING" if "{text}" is just a greeting/ vague, else "QUERY":"""
     )
-    response_text = ask_llm(prompt, memory)
+    return _ask_llm(g_prompt, history).upper() == "GREETING"
 
-    image_url = None
-    for line in response_text.splitlines():
-        if line.strip().startswith("IMAGE:"):
-            keyword = line.split("IMAGE:")[1].strip().lower()
-            image_url = image_map.get(keyword)
-            response_text = response_text.replace(line, "").strip()
+
+# ──────────────────────────────────────────────────────────────────────────────
+def generate_response(project: str, history: list[dict]):
+    """
+    history: full chat so far, *last item must be the latest USER msg*.
+    Returns {text:str, image_url:str|None}
+    """
+    cfg = _project_cfg(project)
+    user_input = history[-1]["content"]
+
+    # 1 early exits -----------------------------------------------------------
+    if _is_greeting(user_input, history):
+        return dict(
+            text=f"Hi! I'm your assistant for {project}. Ask me anything!",
+            image_url=None,
+        )
+    # if _violates_policy(user_input, history):
+    # return dict(text="Query blocked due to policy.", image_url=None)
+
+    # 2 vector context --------------------------------------------------------
+    docs = cfg["vector"].similarity_search(user_input, k=5)
+    context = "\n".join(d.page_content for d in docs)
+
+    # 3 main prompt -----------------------------------------------------------
+    prompt = cfg["tpl"].format(
+        context=context,
+        query=user_input,
+        image_keywords=", ".join(cfg["images"].keys()),
+    )
+    answer = _ask_llm(prompt, history)
+
+    # 4 policy check on answer ------------------------------------------------
+    # if _violates_policy(answer, history):
+    # return dict(text="Response blocked due to policy.", image_url=None)
+
+    # 5 optional image tag parsing -------------------------------------------
+    img_url = None
+    for line in answer.splitlines():
+        if line.strip().lower().startswith("image:"):
+            keyword = line.split("image:")[1].strip().lower()
+            img_url = cfg["images"].get(keyword)
+            answer = answer.replace(line, "").strip()
             break
 
-    if violates_policy_llm(response_text, memory):
-        return {"text": "Response blocked due to policy.", "image_url": None}
-
-    return {"text": response_text, "image_url": image_url}
+    return dict(text=answer, image_url=img_url)
