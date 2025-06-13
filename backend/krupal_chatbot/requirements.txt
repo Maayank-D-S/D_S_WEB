@@ -1,7 +1,0 @@
-streamlit
-google-generativeai
-langchain
-langchain-community
-langchain-ollama
-faiss-cpu
-python-dotenv
