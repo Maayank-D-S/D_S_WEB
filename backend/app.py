@@ -1,7 +1,8 @@
 from flask import Flask
 from database import db
 from routes.customer_routes import customer_bp
-# from routes.ai_message_routes import ai_bp
+
+from routes.ai_message_route import ai_bp
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///customers.db'

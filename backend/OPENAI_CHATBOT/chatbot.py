@@ -20,10 +20,12 @@ llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KE
 embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 
-vectorstore = FAISS.load_local(
-    "krupaldb_faiss", embedding, allow_dangerous_deserialization=True
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # path to chatbot.py
+FAISS_DIR = os.path.join(BASE_DIR, "krupaldb_faiss")
 
+vectorstore = FAISS.load_local(
+    FAISS_DIR, embedding, allow_dangerous_deserialization=True
+)
 
 IMAGE_MAP = {
     "bedroom": "images/bedroom.jpeg",

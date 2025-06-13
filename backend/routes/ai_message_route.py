@@ -25,7 +25,7 @@ def new_query():
     ai_response = fetch_response(user_message)  # your LLM call
 
     # Save AI response
-    ai_msg = AIMessage(user_id=user_id, session_id=session_id, role='ai', message=ai_response)
+    ai_msg = AIMessage(user_id=user_id, session_id=session_id, role='ai', message=ai_response["text"])
     db.session.add(ai_msg)
     db.session.commit()
 
