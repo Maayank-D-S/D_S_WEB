@@ -17,10 +17,6 @@ llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KE
 embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 
-
-
-
-
 # Prompt templates
 KRUPAL_PROMPT = """
 You are a confident, human-like, and persuasive **real estate sales agent** for *Krupal Habitat* — a premium plotting project located in **Dholera, Gujarat**. Your job is to help clients understand the opportunity and **convince them** why investing in Krupal Habitat is smart and future-focused.
@@ -71,6 +67,9 @@ Answer the user's question by following these rules:
 
 🧠 **Tone & Limits**
 16. Always be helpful, confident, and proactive — like a top-performing sales executive.
+-If the user asks for the **location** or **map**, include this link: [📍 View on Google Maps](https://maps.app.goo.gl/jMBMpq5tEcDVi8ZNA)
+-- If the user asks about pricing or cost, include: IMAGE: payment plan
+
 17. Keep answers under **5 sentences** unless bullet points make it clearer.
 
 ---
@@ -136,6 +135,10 @@ for any questions on ramnagar use your own knowledge
 **Tone**
 - You're the sales agent: sound confident, helpful, and close the deal
 - Never say “I don’t know” — always guide or offer assistance
+-- If the user asks about pricing or cost, include: IMAGE: payment plan
+
+-If the user asks for the **location** or **map**, include this link: [📍 View on Google Maps](https://maps.app.goo.gl/Q5y5SKGX82QnLHPE6?g_st=iw)
+
 - Use bullet points and stay under 5 sentences if possible
 
 **Images**
@@ -192,46 +195,55 @@ ANSWER:
 # Project configuration loader
 
 
-
-
-
-
-
 # ──────────────────────────────────────────────────────────────────────────────
 def _project_cfg(name: str):
     if name == "Krupal Habitat":
         return dict(
-            vector = FAISS.load_local(
+            vector=FAISS.load_local(
                 os.path.join(BASE_DIR, "krupaldb_faiss"),
                 embedding,
-                allow_dangerous_deserialization=True),
-            images = {
+                allow_dangerous_deserialization=True,
+            ),
+            images={
                 "gated community": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903023/gatedcommunity_gpjff4.jpg",
-                "house":   "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903025/house_cu9on6.jpg",
-                "clubhouse":"https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903022/clubhouse_opxfdz.jpg",
+                "house": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903025/house_cu9on6.jpg",
+                "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903022/clubhouse_opxfdz.jpg",
                 "krupal habitat": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903024/krupalhabitat_ywpcpp.jpg",
+                "payment plan": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749922165/krupal_payment_soj4mc.jpg",
             },
-            tpl    = KRUPAL_PROMPT,
+            tpl=KRUPAL_PROMPT,
         )
     if name == "Ramvan Villas":
         return dict(
-            vector = FAISS.load_local(os.path.join(BASE_DIR,"ramvan_villas_faiss"), embedding, allow_dangerous_deserialization=True),
-            images = {
-                "bedroom":"https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903320/bedroom_rnp54b.jpg",
-                "living room":"https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903327/livingroom_xdpba4.jpg",
-                "dining room":"https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/diningroom_xezi1c.jpg",
-                "villa":"https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/house_rceotg.jpg",
-                "kitchen":"https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/diningroom_xezi1c.jpg",
+            vector=FAISS.load_local(
+                os.path.join(BASE_DIR, "ramvan_villas_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            ),
+            images={
+                "bedroom": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903320/bedroom_rnp54b.jpg",
+                "living room": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903327/livingroom_xdpba4.jpg",
+                "dining room": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/diningroom_xezi1c.jpg",
+                "villa": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/house_rceotg.jpg",
+                "kitchen": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/diningroom_xezi1c.jpg",
+                "payment plan": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749922062/ramvan_payment_ychisk.jpg",
             },
-            tpl    = RAMVAN_PROMPT,
+            tpl=RAMVAN_PROMPT,
         )
     if name == "Firefly Homes":
         return dict(
-            vector = FAISS.load_local(os.path.join(BASE_DIR,"firefly_faiss"), embedding, allow_dangerous_deserialization=True),
-            images = {"clubhouse":"https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749902620/clubhouse_og4dc2.jpg"},
-            tpl    = FIREFLY_PROMPT,
+            vector=FAISS.load_local(
+                os.path.join(BASE_DIR, "firefly_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            ),
+            images={
+                "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749902620/clubhouse_og4dc2.jpg"
+            },
+            tpl=FIREFLY_PROMPT,
         )
     raise ValueError("Unknown project")
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # tiny helper for LLM calls with explicit history
@@ -246,15 +258,20 @@ def _ask_llm(prompt: str, history: list[dict]):
 
     return llm.invoke(messages).content.strip()
 
+
 # wrapper filters -------------------------------------------------------------
 def _violates_policy(text: str, history):
     pol_prompt = f"""You are a content-filter. Reply ONLY "BLOCK" or "ALLOW".
 Text: "{text}" """
     return _ask_llm(pol_prompt, history).upper() == "BLOCK"
 
+
 def _is_greeting(text: str, history):
-    g_prompt = f"""Reply "GREETING" if "{text}" is just a greeting/ vague, else "QUERY":"""
+    g_prompt = (
+        f"""Reply "GREETING" if "{text}" is just a greeting/ vague, else "QUERY":"""
+    )
     return _ask_llm(g_prompt, history).upper() == "GREETING"
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 def generate_response(project: str, history: list[dict]):
@@ -262,24 +279,27 @@ def generate_response(project: str, history: list[dict]):
     history: full chat so far, **last item must be the latest USER msg**.
     Returns {text:str, image_url:str|None}
     """
-    cfg        = _project_cfg(project)
+    cfg = _project_cfg(project)
     user_input = history[-1]["content"]
 
     # 1 early exits -----------------------------------------------------------
     if _is_greeting(user_input, history):
-        return dict(text=f"Hi! I'm your assistant for {project}. Ask me anything!", image_url=None)
+        return dict(
+            text=f"Hi! I'm your assistant for {project}. Ask me anything!",
+            image_url=None,
+        )
     # if _violates_policy(user_input, history):
     #     return dict(text="Query blocked due to policy.", image_url=None)
 
     # 2 vector context --------------------------------------------------------
-    docs    = cfg["vector"].similarity_search(user_input, k=5)
+    docs = cfg["vector"].similarity_search(user_input, k=5)
     context = "\n".join(d.page_content for d in docs)
 
     # 3 main prompt -----------------------------------------------------------
     prompt = cfg["tpl"].format(
         context=context,
         query=user_input,
-        image_keywords=", ".join(cfg["images"].keys())
+        image_keywords=", ".join(cfg["images"].keys()),
     )
     answer = _ask_llm(prompt, history)
 
@@ -294,7 +314,9 @@ def generate_response(project: str, history: list[dict]):
         keyword = match.group(1).strip().lower()
         img_url = cfg["images"].get(keyword)
         if img_url:
-            answer = re.sub(r"image:\s*[\w\s]*", "", answer, flags=re.IGNORECASE).strip()
+            answer = re.sub(
+                r"image:\s*[\w\s]*", "", answer, flags=re.IGNORECASE
+            ).strip()
         else:
             print(f"[WARN] No image found for keyword: '{keyword}'")
 
