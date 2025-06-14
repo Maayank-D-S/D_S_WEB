@@ -37,9 +37,18 @@ Answer the user's question by following these rules:
    - Development Charges (fixed ₹1500 per sq yard)
 7. For cost queries, calculate **total cost** as:
    `Total = (area × BSP) + (area × development)`
-8. Respond with **both Pre-Launch and Launch phase** pricing:
-   - Pre-Launch: ₹6,500 + ₹1,500
-   - Launch: ₹8,500 + ₹1,500
+   Also mention preferable location charges and amount paid to be on time of booking and other things in context
+   Preferential location charges = 10% of BSP(for corner and park facing plots)
+    Payment Plan:
+    On time of booking : 10% of BSP
+
+    On executing BBA : 20% of BSP
+
+    On land registry of unit : 70% BSP + Extra charges
+
+
+8. Respond with 
+    ₹8,000 + ₹1,500
 9. Show a clear price **breakdown**: BSP, Dev Charges, Total — for both phases.
 
 🏠 **Layout & Amenities**
