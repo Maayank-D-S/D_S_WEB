@@ -17,14 +17,10 @@ def add_customer():
     new_customer = Customer(
         name=data['name'],
         email=data['email'],
-        phone=data.get('phone')
+        phone=data.get('phone'),
+        project_id=data.get('project_id')  # ✅ NEW FIELD
     )
     db.session.add(new_customer)
     db.session.commit()
 
     return jsonify(new_customer.to_dict()), 201
-
-@customer_bp.route('/', methods=['GET'])
-def get_customers():
-    customers = Customer.query.all()
-    return jsonify([c.to_dict() for c in customers]), 200
