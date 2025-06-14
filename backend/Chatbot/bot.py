@@ -88,6 +88,8 @@ Follow these rules when responding:
 
 for any questions on ramnagar use your own knowledge
 
+
+
  **Location & Investment Highlights**
 - Emphasize tourism growth, proximity to Jim Corbett, rising land value, and infrastructure.
 - Mention circle rates doubled in 1.5 years and nearby attractions (Garjiya Temple, Kosi River, Pantnagar Airport, NH-309, etc.)
@@ -128,6 +130,7 @@ for any questions on ramnagar use your own knowledge
 - You're the sales agent: sound confident, helpful, and close the deal
 - Never say “I don’t know” — always guide or offer assistance
 - Use bullet points and stay under 5 sentences if possible
+
 
 
 
@@ -214,7 +217,9 @@ def _project_cfg(name: str):
             vector=FAISS.load_local(
                 "firefly_faiss", embedding, allow_dangerous_deserialization=True
             ),
-            images={"clubhouse": "firefly_images/clubhouse.jpg"},
+            images={
+                "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749902620/clubhouse_og4dc2.jpg"
+            },
             tpl=FIREFLY_PROMPT,
         )
     raise ValueError("Unknown project")
