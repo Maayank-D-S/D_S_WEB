@@ -4,7 +4,7 @@ from bot import generate_response  # Replace with your actual filename (no .py)
 
 
 def main():
-    print("🟢 Ramvan Villas Assistant\nType 'exit' to quit.\n")
+    print("🟢 Dholera Assistant\nType 'exit' to quit.\n")
 
     history = []
 
@@ -18,7 +18,7 @@ def main():
         history.append({"role": "user", "content": user_input})
 
         # Get response
-        response = generate_response("Ramvan Villas", history)
+        response = generate_response("Krupal Habitat", history)
 
         # Add bot response to history
         history.append({"role": "assistant", "content": response["text"]})
