@@ -331,16 +331,16 @@ def generate_response(project: str, history: list[dict]):
     #     return dict(text="Response blocked due to policy.", image_url=None)
 
     # 5 optional image tag parsing -------------------------------------------
-    img_url = None
-    match = re.search(r"image:\s*(\w[\w\s]*)", answer, re.IGNORECASE)
-    if match:
-        keyword = match.group(1).strip().lower()
-        img_url = cfg["images"].get(keyword)
-        if img_url:
-            answer = re.sub(
-                r"image:\s*[\w\s]*", "", answer, flags=re.IGNORECASE
-            ).strip()
-        else:
-            print(f"[WARN] No image found for keyword: '{keyword}'")
+    # img_url = None
+    # match = re.search(r"image:\s*(\w[\w\s]*)", answer, re.IGNORECASE)
+    # if match:
+    #     keyword = match.group(1).strip().lower()
+    #     img_url = cfg["images"].get(keyword)
+    #     if img_url:
+    #         answer = re.sub(
+    #             r"image:\s*[\w\s]*", "", answer, flags=re.IGNORECASE
+    #         ).strip()
+    #     else:
+    #         print(f"[WARN] No image found for keyword: '{keyword}'")
 
-    return dict(text=answer, image_url=img_url)
+    return dict(text=answer, image_url=None)
