@@ -7,6 +7,14 @@ from langchain_community.vectorstores import FAISS
 import os
 import re
 
+#  If the query mentions one of these: {image_keywords}, end your answer with:
+#  IMAGE: <room name>
+# this for image return will be added later
+# -- If the user asks about pricing or cost, include: IMAGE: payment plan
+#  If asked for pricing → **include: IMAGE: payment plan**
+# - If asked for **layout** or **masterplan** or **plot details** -> **include: IMAGE: masterplan**
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -73,14 +81,13 @@ So development area for plot = 0.65*0.6*super area
 🧠 **Tone & Limits**
 16. Always be helpful, confident, and proactive — like a top-performing sales executive.
 -If the user asks for the **location** or **map**, include this link: [📍 View on Google Maps](https://maps.app.goo.gl/jMBMpq5tEcDVi8ZNA)
--- If the user asks about pricing or cost, include: IMAGE: payment plan
+
  17.Always give answer in bullet points 
 Dont put asteriks signs while answering keep answer clean of these **
+keep answers **short and to the point** for eg if i ask about **plot sizes** just tell the range 
 
 ---
 
-If the query mentions one of these: {image_keywords}, end your answer with:
-IMAGE: <room name>
 
 
 CONTEXT:
@@ -157,17 +164,15 @@ You are a persuasive, confident, and friendly **real estate sales executive** fo
 - Act as a confident sales agent — close the deal
 - Never say “I don’t know” — always assist or offer alternatives
 - Use **bullet points** and limit answers to **under 5 sentences**
-- If asked for pricing → **include: IMAGE: payment plan**
-- If asked for **layout** or **masterplan** or **plot details** -> **include: IMAGE: masterplan**
 - If asked for map/location → include:
   📍 [View on Google Maps](https://maps.app.goo.gl/Q5y5SKGX82QnLHPE6?g_st=iw)
   dont return location everytime only when asked about the it specifically.
 -Dont put these asteriks in answers like these **
+keep your answers exactly to the point no need to give too much informstion just to the point.
+keep answers **short and to the point**
 
 ────────────────────────────
-🖼️ **Images**
-If the query mentions one of these: {image_keywords}, end your answer with:
-IMAGE: <room name>
+
 
 ────────────────────────────
 CONTEXT:
@@ -202,11 +207,8 @@ Always answer based on the provided context. If users ask general questions abou
 - Never say "I don’t know", always offer help
 - Use bullet points  and keep it short (max 5 sentences)
 - Dont put these asteriks in answers like these **
-
-🖼️ **Images**
-If any of these are mentioned: {image_keywords}, add:
-IMAGE: <room name>
-
+keep your answers exactly to the point no need to give too much informstion just to the point.
+keep answers **short and to the point**
 
 CONTEXT:
 {context}
@@ -326,7 +328,7 @@ def generate_response(project: str, history: list[dict]):
     prompt = cfg["tpl"].format(
         context=context,
         query=user_input,
-        image_keywords=", ".join(cfg["images"].keys()),
+        image_keywords="",  # ", ".join(cfg["images"].keys()),
     )
     answer = _ask_llm(prompt, history)
 
