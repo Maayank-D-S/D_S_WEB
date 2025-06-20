@@ -76,6 +76,7 @@ USER:
 
 ANSWER:
 - Limit your reply to 4–5 bullet points max.
+- before starting points just give **one line** at the top like here are the main points or some other line that seems suitable.
 - Use natural language like a real person speaking.
 - Be short, clear, and persuasive — avoid repeating details.
 - Speak like a friendly human sales executive — not like a robot.
@@ -101,6 +102,7 @@ USER:
 
 ANSWER:
 - Limit your reply to 4–5 bullet points max.
+- before starting points just give **one line** at the top like here are the main points or some other line that seems suitable.
 - Use natural language like a real person speaking.
 - Be short, clear, and persuasive — avoid repeating details.
 - Speak like a friendly human sales executive — not like a robot.
@@ -126,6 +128,7 @@ USER:
 
 ANSWER:
 - Limit your reply to 4–5 bullet points max.
+- before starting points just give **one line** at the top like here are the main points or some other line that seems suitable.
 - Use natural language like a real person speaking.
 - Be short, clear, and persuasive — avoid repeating details.
 - Speak like a friendly human sales executive — not like a robot.
