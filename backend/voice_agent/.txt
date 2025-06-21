@@ -1,0 +1,1 @@
+python voice_bot.py connect --url wss://voiceagent-r61lwlb9.livekit.cloud --api-key APIPCMPpbvLsmWj --api-secret gYX1zgL9ZfxLUi90oYupAwuBevvyL2EES5QmjsGEeDFA --room playground-7Eaa-G1Fw --participant-identity identity-FBp9
