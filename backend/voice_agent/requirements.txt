@@ -1,0 +1,9 @@
+livekit-agents==1.1.1
+livekit-plugins==0.1.0
+python-dotenv==1.0.1
+loguru==0.7.2
+openai==1.30.1
+langchain==0.2.2
+langchain-openai==0.1.6
+langchain-community==0.2.3
+aiohttp==3.9.5

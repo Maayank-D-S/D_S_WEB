@@ -160,6 +160,16 @@ ANSWER:
 # ──────────────────────────────────────────────────────────────────────────────
 def _project_cfg(name: str):
     if name == "Krupal Habitat":
+        try:
+            print(f"🟡 Trying to load FAISS index from: {path}")
+            return FAISS.load_local(
+                os.path.join(BASE_DIR, "krupaldb_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            )
+        except Exception as e:
+            print(f"❌ Failed to load FAISS from {os.path.join(BASE_DIR, "krupaldb_faiss")}: {e}")
+            return None
         return dict(
             vector=FAISS.load_local(
                 os.path.join(BASE_DIR, "krupaldb_faiss"),

@@ -20,6 +20,7 @@ from Chatbot.bot import generate_response
 
 # Load environment variables (make sure .env has DEEPGRAM_API_KEY)
 load_dotenv()
+deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
 
 # Configure logging
 logger = logging.getLogger("transcribe")
@@ -41,7 +42,7 @@ async def entrypoint(ctx: JobContext):
     logger.info(" Connected to room with AUDIO_ONLY subscription")
 
     # 🧠 Init Deepgram STT
-    stt_impl = deepgram.STT(model="nova-3", api_key="")
+    stt_impl = deepgram.STT(model="nova-3", api_key=deepgram_api_key)
     logger.info(" Deepgram STT initialized")
 
     #  Create audio source and publish it once
@@ -55,7 +56,8 @@ async def entrypoint(ctx: JobContext):
         model="aura-2-andromeda-en",
         encoding="linear16",
         sample_rate=24000,
-        api_key="",
+        api_key=deepgram_api_key
+,
     )
     logger.info(" Deepgram TTS initialized")
 
