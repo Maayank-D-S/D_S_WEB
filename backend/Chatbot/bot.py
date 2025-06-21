@@ -136,7 +136,24 @@ ANSWER:
 
 """
 
+LEGAL_PROMPT = """
+You are a helpful real estate consultant for our customer.Clear thier doubts regarding property purchase questions and any legal queiries.
+Be very **breif**.Make sure the process is clear to them and in the end they feel confident 
 
+CONTEXT:
+{context}
+
+USER:
+{query}
+
+ANSWER:
+- Limit your reply to 4–5 bullet points max.
+- before starting points just give **one line** at the top like here are the main points or some other line that seems suitable.
+- Use natural language like a real person speaking.
+- Be short, clear, and persuasive — avoid repeating details.
+- Speak like a friendly human real estate consultant— not like a robot.
+
+"""
 # Project configuration loader
 
 
@@ -188,6 +205,17 @@ def _project_cfg(name: str):
             },
             tpl=FIREFLY_PROMPT,
         )
+    if name == "Legal Consultant":
+        return dict(
+            vector=FAISS.load_local(
+                os.path.join(BASE_DIR, "legal_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            ),
+            images={},  # likely not needed unless you want legal diagrams or infographics
+            tpl=LEGAL_PROMPT,
+        )
+
     raise ValueError("Unknown project")
 
 

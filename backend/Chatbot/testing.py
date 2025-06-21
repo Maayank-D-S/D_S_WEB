@@ -18,7 +18,7 @@ def main():
         history.append({"role": "user", "content": user_input})
 
         # Get response
-        response = generate_response("Krupal Habitat", history)
+        response = generate_response("Legal Consultant", history)
 
         # Add bot response to history
         history.append({"role": "assistant", "content": response["text"]})
