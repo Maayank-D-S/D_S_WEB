@@ -15,7 +15,7 @@ OPENAI_MODEL = "gpt-4.1-mini"
 
 if "chat_memory" not in st.session_state:
     st.session_state.chat_memory = ConversationBufferMemory(return_messages=True)
-
+print("chat_memory initialized:")
 llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KEY)
 embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
