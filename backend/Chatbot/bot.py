@@ -159,7 +159,20 @@ ANSWER:
 
 # ──────────────────────────────────────────────────────────────────────────────
 def _project_cfg(name: str):
+    print("Testing 3")
     if name == "Krupal Habitat":
+        print("Testing 8")
+        print("🟡 Trying to load FAISS index")
+        try:
+            vec = FAISS.load_local(
+                    os.path.join(BASE_DIR, "krupaldb_faiss"),
+                embedding,
+                    allow_dangerous_deserialization=True,
+            )
+            print("✅ FAISS loaded")
+        except Exception as e:
+            print(f"❌ Failed to load FAISS: {e}")
+            raise
         return dict(
             vector=FAISS.load_local(
                 os.path.join(BASE_DIR, "krupaldb_faiss"),
@@ -175,7 +188,9 @@ def _project_cfg(name: str):
             },
             tpl=KRUPAL_PROMPT,
         )
+    print("Testing 4")
     if name == "Ramvan Villas":
+        print("Testing 9")
         return dict(
             vector=FAISS.load_local(
                 os.path.join(BASE_DIR, "ramvan_villas_faiss"),
@@ -193,6 +208,7 @@ def _project_cfg(name: str):
             },
             tpl=RAMVAN_PROMPT,
         )
+    print("Testing 4")
     if name == "Firefly Homes":
         return dict(
             vector=FAISS.load_local(
@@ -205,6 +221,7 @@ def _project_cfg(name: str):
             },
             tpl=FIREFLY_PROMPT,
         )
+    print("Testing 4")
     if name == "Legal Consultant":
         return dict(
             vector=FAISS.load_local(
@@ -215,7 +232,7 @@ def _project_cfg(name: str):
             images={},  # likely not needed unless you want legal diagrams or infographics
             tpl=LEGAL_PROMPT,
         )
-
+    print("Unknown Project")
     raise ValueError("Unknown project")
 
 
@@ -253,11 +270,14 @@ def generate_response(project: str, history: list[dict]):
     history: full chat so far, **last item must be the latest USER msg**.
     Returns {text:str, image_url:str|None}
     """
+    print("Testing")
     cfg = _project_cfg(project)
+    print("Testing: after cfg")
     user_input = history[-1]["content"]
 
     # 1 early exits -----------------------------------------------------------
     if _is_greeting(user_input, history):
+        print('Yo')
         return dict(
             text=f"Hi! I'm your assistant for {project}. Ask me anything!",
             image_url=None,
@@ -276,6 +296,7 @@ def generate_response(project: str, history: list[dict]):
         image_keywords="",  # ", ".join(cfg["images"].keys()),
     )
     answer = _ask_llm(prompt, history)
+    print(f"[DEBUG] Generated answer: {answer}")
 
     # 4 policy check on answer ------------------------------------------------
     # if _violates_policy(answer, history):

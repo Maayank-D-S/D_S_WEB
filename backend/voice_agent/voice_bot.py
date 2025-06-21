@@ -14,19 +14,16 @@ from livekit.agents import (
 )
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from livekit.plugins import deepgram
 from Chatbot.bot import generate_response
 
-# Load environment variables (make sure .env has DEEPGRAM_API_KEY)
+# Load env
 load_dotenv()
+deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
 
-# Configure logging
 logger = logging.getLogger("transcribe")
-logging.basicConfig(level=logging.DEBUG)  # Verbose logs
+logging.basicConfig(level=logging.DEBUG)
 
-
-# Basic wrapper to call your chatbot logic
 def fetch_response(user_input):
     logger.debug(f"[fetch_response] User input: {user_input}")
     history = [{"role": "user", "content": user_input}]
@@ -34,30 +31,20 @@ def fetch_response(user_input):
     logger.debug(f"[fetch_response] Response from bot: {result}")
     return result["text"]
 
-
 async def entrypoint(ctx: JobContext):
     logger.info(f" Starting transcriber for room: {ctx.room.name}")
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-    logger.info(" Connected to room with AUDIO_ONLY subscription")
 
-    # 🧠 Init Deepgram STT
-    stt_impl = deepgram.STT(model="nova-3", api_key="")
-    logger.info(" Deepgram STT initialized")
-
-    #  Create audio source and publish it once
-    audio_src = rtc.AudioSource(sample_rate=24000, num_channels=1)
-    audio_track = rtc.LocalAudioTrack.create_audio_track("bot-tts", audio_src)
-    await ctx.room.local_participant.publish_track(audio_track)
-    logger.info(" TTS Audio track published to room")
-
-    #  Init Deepgram TTS
+    # Init Deepgram STT and TTS early
+    stt_impl = deepgram.STT(model="nova-3", api_key=deepgram_api_key)
     tts = deepgram.TTS(
         model="aura-2-andromeda-en",
         encoding="linear16",
         sample_rate=24000,
-        api_key="",
+        api_key=deepgram_api_key,
     )
-    logger.info(" Deepgram TTS initialized")
+
+    audio_src = rtc.AudioSource(sample_rate=24000, num_channels=1)
+    audio_track = rtc.LocalAudioTrack.create_audio_track("bot-tts", audio_src)
 
     async def transcribe_track(participant: rtc.RemoteParticipant, track: rtc.Track):
         logger.info(f" Starting transcription for: {participant.identity}")
@@ -67,13 +54,13 @@ async def entrypoint(ctx: JobContext):
         async def _handle_audio_stream():
             logger.debug(" Listening to incoming audio frames...")
             async for ev in audio_stream:
-                logger.debug(" Received audio frame")
+                # logger.debug(" Received audio frame")
                 stt_stream.push_frame(ev.frame)
 
         async def _handle_transcription_output():
             logger.debug(" Waiting for transcription results...")
             async for ev in stt_stream:
-                logger.debug(f"[Deepgram Event] {ev}")
+                # logger.debug(f"[Deepgram Event] {ev}")
                 if ev.type == stt.SpeechEventType.FINAL_TRANSCRIPT:
                     user_query = ev.alternatives[0].text
                     logger.info(f" User query: {participant.identity}: {user_query}")
@@ -92,6 +79,7 @@ async def entrypoint(ctx: JobContext):
             _handle_transcription_output(),
         )
 
+    # ───────────── Event Handlers ─────────────
     @ctx.room.on("track_subscribed")
     def on_track_subscribed(
         track: rtc.Track,
@@ -122,8 +110,15 @@ async def entrypoint(ctx: JobContext):
 
     @ctx.room.on("*")
     def on_any_event(event_name, *args, **kwargs):
-        logger.debug(f" [EVENT] {event_name} | args={args} kwargs={kwargs}")
+        logger.debug(f" [EVENT] {event_name} | args={args}, kwargs={kwargs}")
 
+    # Connect and publish TTS track after registering handlers
+    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+    logger.info(" Connected to room with AUDIO_ONLY subscription")
+    logger.info(" Deepgram STT initialized")
+    await ctx.room.local_participant.publish_track(audio_track)
+    logger.info(" TTS Audio track published to room")
+    logger.info(" Deepgram TTS initialized")
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
