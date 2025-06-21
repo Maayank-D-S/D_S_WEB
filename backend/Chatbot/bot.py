@@ -193,18 +193,18 @@ def _project_cfg(name: str):
             },
             tpl=RAMVAN_PROMPT,
         )
-    if name == "Firefly Homes":
-        return dict(
-            vector=FAISS.load_local(
-                os.path.join(BASE_DIR, "firefly_faiss"),
-                embedding,
-                allow_dangerous_deserialization=True,
-            ),
-            images={
-                "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749902620/clubhouse_og4dc2.jpg"
-            },
-            tpl=FIREFLY_PROMPT,
-        )
+    # if name == "Firefly Homes":
+    #     return dict(
+    #         vector=FAISS.load_local(
+    #             os.path.join(BASE_DIR, "firefly_faiss"),
+    #             embedding,
+    #             allow_dangerous_deserialization=True,
+    #         ),
+    #         images={
+    #             "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749902620/clubhouse_og4dc2.jpg"
+    #         },
+    #         tpl=FIREFLY_PROMPT,
+    #     )
     if name == "Legal Consultant":
         return dict(
             vector=FAISS.load_local(
