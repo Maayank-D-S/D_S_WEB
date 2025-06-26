@@ -18,7 +18,7 @@ import re
 # ──────────────────────────────────────────────────────────────────────────────
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = "gpt-4.1-mini"
+OPENAI_MODEL = "gpt-4.1"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Shared LLM and Embeddings
 llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KEY)
