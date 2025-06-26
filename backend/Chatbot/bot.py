@@ -165,9 +165,9 @@ def _project_cfg(name: str):
         print("🟡 Trying to load FAISS index")
         try:
             vec = FAISS.load_local(
-                    os.path.join(BASE_DIR, "krupaldb_faiss"),
+                os.path.join(BASE_DIR, "krupaldb_faiss"),
                 embedding,
-                    allow_dangerous_deserialization=True,
+                allow_dangerous_deserialization=True,
             )
             print("✅ FAISS loaded")
         except Exception as e:
@@ -277,7 +277,7 @@ def generate_response(project: str, history: list[dict]):
 
     # 1 early exits -----------------------------------------------------------
     if _is_greeting(user_input, history):
-        print('Yo')
+        print("Yo")
         return dict(
             text=f"Hi! I'm your assistant for {project}. Ask me anything!",
             image_url=None,
