@@ -18,7 +18,7 @@ import re
 # ──────────────────────────────────────────────────────────────────────────────
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = "gpt-4.1-mini"
+OPENAI_MODEL = "gpt-4.1"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Shared LLM and Embeddings
 llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KEY)
@@ -203,18 +203,18 @@ def _project_cfg(name: str):
             },
             tpl=RAMVAN_PROMPT,
         )
-    if name == "Firefly Homes":
-        return dict(
-            vector=FAISS.load_local(
-                os.path.join(BASE_DIR, "firefly_faiss"),
-                embedding,
-                allow_dangerous_deserialization=True,
-            ),
-            images={
-                "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749902620/clubhouse_og4dc2.jpg"
-            },
-            tpl=FIREFLY_PROMPT,
-        )
+    # if name == "Firefly Homes":
+    #     return dict(
+    #         vector=FAISS.load_local(
+    #             os.path.join(BASE_DIR, "firefly_faiss"),
+    #             embedding,
+    #             allow_dangerous_deserialization=True,
+    #         ),
+    #         images={
+    #             "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749902620/clubhouse_og4dc2.jpg"
+    #         },
+    #         tpl=FIREFLY_PROMPT,
+    #     )
     if name == "Legal Consultant":
         return dict(
             vector=FAISS.load_local(
@@ -258,7 +258,7 @@ def _is_greeting(text: str, history):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-def generate_response(project: str, history: list[dict]):
+def generate_response(project: str, history: list[dict], voice_mode: bool):
     """
     history: full chat so far, **last item must be the latest USER msg**.
     Returns {text:str, image_url:str|None}
@@ -278,12 +278,40 @@ def generate_response(project: str, history: list[dict]):
     # 2 vector context --------------------------------------------------------
     docs = cfg["vector"].similarity_search(user_input, k=5)
     context = "\n".join(d.page_content for d in docs)
+    VOICE_PROMPT_TEMPLATE = ""
+    if voice_mode:
+        VOICE_PROMPT_TEMPLATE = """
+
+You are speaking aloud to a human in voice mode.
+
+⭑ Tone & Emotion
+- Match the user's sentiment: friendly if excited, calm if unsure, concise if rushed.
+- Use a human, conversational tone — not robotic or overly formal.
+
+⭑ Style & Delivery
+- Expand abbreviations: say "square yard", not "sq. yd".
+- Speak full numbers: say "twenty thousand", not "20,000".
+- Use punctuation for natural pauses.
+
+⭑ Answering Strategy
+- Always respond in **1 natural paragraph**, not bullets.
+- Summarize everything in **around 40 words only**.
+- Do not explain every detail — highlight the most important points.
+- Always end with a **follow-up question** to keep the conversation going.
+- If the question is simple or factual (e.g., distance, direction, yes/no), answer it **briefly** — ideally 1 sentence.
+- If the question asks for full project details or comparisons, summarize it in **under 40 words**, in 1 short paragraph.
+- Always ask a relevant follow-up question to continue the conversation.
+"""
 
     # 3 main prompt -----------------------------------------------------------
-    prompt = cfg["tpl"].format(
-        context=context,
-        query=user_input,
-        image_keywords="",  # ", ".join(cfg["images"].keys()),
+    prompt = (
+        "Analyze the user's emotional tone and respond accordingly.\n\n"
+        + cfg["tpl"].format(
+            context=context,
+            query=user_input,
+            image_keywords="",  # ", ".join(cfg["images"].keys()),
+        )
+        + VOICE_PROMPT_TEMPLATE
     )
     answer = _ask_llm(prompt, history)
 

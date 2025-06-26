@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import sys
-
 from dotenv import load_dotenv
 from livekit import rtc
 from livekit.agents import (
@@ -14,52 +13,58 @@ from livekit.agents import (
 )
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from livekit.plugins import deepgram
+from livekit.plugins import deepgram, cartesia
 from Chatbot.bot import generate_response
 
-# Load environment variables (make sure .env has DEEPGRAM_API_KEY)
+# Load env
 load_dotenv()
 deepgram_api_key = os.getenv("DEEPGRAM_API_KEY")
+cartesia_api_key = os.getenv("CARTESIA_API_KEY")
 
-# Configure logging
 logger = logging.getLogger("transcribe")
-logging.basicConfig(level=logging.DEBUG)  # Verbose logs
+logging.basicConfig(level=logging.DEBUG)
+
+# === Warm-up ===
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
+
+warm_llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0)
+warm_llm.invoke([HumanMessage(content="Hi!")])  # warm up the model
 
 
-# Basic wrapper to call your chatbot logic
 def fetch_response(user_input):
     logger.debug(f"[fetch_response] User input: {user_input}")
     history = [{"role": "user", "content": user_input}]
-    result = generate_response("Krupal Habitat", history)
+    result = generate_response("Ramvan Villas", history, voice_mode=True)
     logger.debug(f"[fetch_response] Response from bot: {result}")
     return result["text"]
 
 
 async def entrypoint(ctx: JobContext):
     logger.info(f" Starting transcriber for room: {ctx.room.name}")
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-    logger.info(" Connected to room with AUDIO_ONLY subscription")
 
-    # 🧠 Init Deepgram STT
-    stt_impl = deepgram.STT(model="nova-3", api_key=deepgram_api_key)
-    logger.info(" Deepgram STT initialized")
+    stt_impl = deepgram.STT(
+        model="nova-3-general",
+        api_key=deepgram_api_key,
+        language="en",
+        interim_results=True,
+        punctuate=True,
+        no_delay=True,
+        filler_words=True,
+        profanity_filter=True,
+        numerals=True,
+    )
+    tts = cartesia.TTS(
+        api_key=cartesia_api_key,
+        model="sonic-2",
+        language="en",
+        voice="f91ab3e6-5071-4e15-b016-cde6f2bcd222",
+        encoding="pcm_s16le",
+        sample_rate=24000,
+    )
 
-    #  Create audio source and publish it once
     audio_src = rtc.AudioSource(sample_rate=24000, num_channels=1)
     audio_track = rtc.LocalAudioTrack.create_audio_track("bot-tts", audio_src)
-    await ctx.room.local_participant.publish_track(audio_track)
-    logger.info(" TTS Audio track published to room")
-
-    #  Init Deepgram TTS
-    tts = deepgram.TTS(
-        model="aura-2-andromeda-en",
-        encoding="linear16",
-        sample_rate=24000,
-        api_key=deepgram_api_key
-,
-    )
-    logger.info(" Deepgram TTS initialized")
 
     async def transcribe_track(participant: rtc.RemoteParticipant, track: rtc.Track):
         logger.info(f" Starting transcription for: {participant.identity}")
@@ -67,27 +72,31 @@ async def entrypoint(ctx: JobContext):
         stt_stream = stt_impl.stream()
 
         async def _handle_audio_stream():
-            logger.debug(" Listening to incoming audio frames...")
             async for ev in audio_stream:
-                logger.debug(" Received audio frame")
                 stt_stream.push_frame(ev.frame)
 
         async def _handle_transcription_output():
-            logger.debug(" Waiting for transcription results...")
             async for ev in stt_stream:
-                logger.debug(f"[Deepgram Event] {ev}")
                 if ev.type == stt.SpeechEventType.FINAL_TRANSCRIPT:
-                    user_query = ev.alternatives[0].text
+                    user_query = ev.alternatives[0].text.strip()
+                    if not user_query:
+                        logger.warning("Empty user query, skipping.")
+                        continue
+
                     logger.info(f" User query: {participant.identity}: {user_query}")
 
-                    response_text = fetch_response(user_query)
-                    logger.info(f" Bot response: {response_text}")
+                    # Use asyncio.create_task to allow overlap
+                    async def respond_and_speak():
+                        response_text = await asyncio.to_thread(
+                            fetch_response, user_query
+                        )
+                        logger.info(f" Bot response: {response_text}")
 
-                    synth_stream = tts.synthesize(response_text)
-                    logger.debug(" Synthesizing response...")
-                    async for chunk in synth_stream:
-                        logger.debug(" Sending TTS audio chunk")
-                        await audio_src.capture_frame(chunk.frame)
+                        synth_stream = tts.synthesize(response_text)
+                        async for chunk in synth_stream:
+                            await audio_src.capture_frame(chunk.frame)
+
+                    asyncio.create_task(respond_and_speak())
 
         await asyncio.gather(
             _handle_audio_stream(),
@@ -95,36 +104,21 @@ async def entrypoint(ctx: JobContext):
         )
 
     @ctx.room.on("track_subscribed")
-    def on_track_subscribed(
-        track: rtc.Track,
-        publication: rtc.TrackPublication,
-        participant: rtc.RemoteParticipant,
-    ):
-        logger.info(
-            f"✅ [track_subscribed] Got track from {participant.identity} | Kind: {track.kind}"
-        )
+    def on_track_subscribed(track, publication, participant):
         if track.kind == rtc.TrackKind.KIND_AUDIO:
-            logger.info(
-                f" [track_subscribed] Subscribing to AUDIO from {participant.identity}"
-            )
             asyncio.create_task(transcribe_track(participant, track))
 
     @ctx.room.on("participant_joined")
-    def on_participant_joined(participant: rtc.RemoteParticipant):
-        logger.info(f" [participant_joined] {participant.identity} joined the room")
+    def on_participant_joined(participant):
+        logger.info(f" Participant joined: {participant.identity}")
 
     @ctx.room.on("track_published")
-    def on_track_published(
-        publication: rtc.TrackPublication,
-        participant: rtc.RemoteParticipant,
-    ):
-        logger.info(
-            f" [track_published] From {participant.identity}, kind: {publication.kind}"
-        )
+    def on_track_published(publication, participant):
+        logger.info(f" Track published from {participant.identity}")
 
-    @ctx.room.on("*")
-    def on_any_event(event_name, *args, **kwargs):
-        logger.debug(f" [EVENT] {event_name} | args={args} kwargs={kwargs}")
+    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+    await ctx.room.local_participant.publish_track(audio_track)
+    logger.info(" Ready and listening...")
 
 
 if __name__ == "__main__":
