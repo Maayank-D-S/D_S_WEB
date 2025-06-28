@@ -64,6 +64,8 @@ Use the context provided to answer the user query in under 5 bullet points. Foll
 📄 confirm:
 - All legal documents are available for review
 
+-if they ask for contact number give this number- +91 9971659153
+
 
 
 Avoid long explanations. Be short, clear, and convincing.
@@ -93,6 +95,7 @@ Use the context provided to answer the user query in under 5 bullet points. Foll
   dont return location everytime only when asked about the it specifically.
 
 Avoid long explanations. Be short, clear, and convincing.
+-if they ask for contact number give this number- +91 9971659153
 
 CONTEXT:
 {context}
@@ -116,6 +119,7 @@ You are a helpful and persuasive real estate sales agent for Firefly Homes in Ut
 Use the context provided to answer the user query in under 5 bullet points. Follow these rules:
 - Use a confident and human tone — like a friendly sales agent.
 - Never say "I don't know". Offer help or a next step.
+-if they ask for contact number give this number- +91 9971659153
 
 
 Avoid long explanations. Be short, clear, and convincing.
@@ -265,7 +269,7 @@ def _is_greeting(text: str, history):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-def generate_response(project: str, history: list[dict],voice_mode: bool):
+def generate_response(project: str, history: list[dict], voice_mode: bool):
     """
     history: full chat so far, **last item must be the latest USER msg**.
     Returns {text:str, image_url:str|None}
@@ -288,8 +292,8 @@ def generate_response(project: str, history: list[dict],voice_mode: bool):
     # 2 vector context --------------------------------------------------------
     docs = cfg["vector"].similarity_search(user_input, k=5)
     context = "\n".join(d.page_content for d in docs)
-    VOICE_PROMPT_TEMPLATE=""
-    if(voice_mode):
+    VOICE_PROMPT_TEMPLATE = ""
+    if voice_mode:
         VOICE_PROMPT_TEMPLATE = """
 
 You are speaking aloud to a human in voice mode.
@@ -312,16 +316,16 @@ You are speaking aloud to a human in voice mode.
 - If the question asks for full project details or comparisons, summarize it in **under 40 words**, in 1 short paragraph.
 - Always ask a relevant follow-up question to continue the conversation.
 """
-    
 
     # 3 main prompt -----------------------------------------------------------
-    prompt =(
+    prompt = (
         "Analyze the user's emotional tone and respond accordingly.\n\n"
-        +cfg["tpl"].format(
-        context=context,
-        query=user_input,
-        image_keywords="",  # ", ".join(cfg["images"].keys()),
-        )+VOICE_PROMPT_TEMPLATE
+        + cfg["tpl"].format(
+            context=context,
+            query=user_input,
+            image_keywords="",  # ", ".join(cfg["images"].keys()),
+        )
+        + VOICE_PROMPT_TEMPLATE
     )
     answer = _ask_llm(prompt, history)
     print(f"[DEBUG] Generated answer: {answer}")
