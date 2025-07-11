@@ -4,7 +4,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.vectorstores import FAISS
 
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = ""
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 llm = ChatOpenAI(model="gpt-4.1", temperature=0.2, api_key=OPENAI_API_KEY)
