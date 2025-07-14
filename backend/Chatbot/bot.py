@@ -264,11 +264,11 @@ Text: "{text}" """
     return _ask_llm(pol_prompt, history).upper() == "BLOCK"
 
 
-def _is_greeting(text: str, history):
-    g_prompt = (
-        f"""Reply "GREETING" if "{text}" is just a greeting/ vague, else "QUERY":"""
-    )
-    return _ask_llm(g_prompt, history).upper() == "GREETING"
+# def _is_greeting(text: str, history):
+#     g_prompt = (
+#         f"""Reply "GREETING" if "{text}" is just a greeting/ vague, else "QUERY":"""
+#     )
+#     return _ask_llm(g_prompt, history).upper() == "GREETING"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -283,12 +283,12 @@ def generate_response(project: str, history: list[dict], voice_mode: bool):
     user_input = history[-1]["content"]
 
     # 1 early exits -----------------------------------------------------------
-    if _is_greeting(user_input, history):
-        print("Yo")
-        return dict(
-            text=f"Hi! I'm your assistant for {project}. Ask me anything!",
-            image_url=None,
-        )
+    # if _is_greeting(user_input, history):
+    #     print("Yo")
+    #     return dict(
+    #         text=f"Hi! I'm your assistant for {project}. Ask me anything!",
+    #         image_url=None,
+    #     )
     # if _violates_policy(user_input, history):
     #     return dict(text="Query blocked due to policy.", image_url=None)
 
