@@ -13,6 +13,8 @@ import re
 # -- If the user asks about pricing or cost, include: IMAGE: payment plan
 #  If asked for pricing → **include: IMAGE: payment plan**
 # - If asked for **layout** or **masterplan** or **plot details** -> **include: IMAGE: masterplan**
+# If the query mentions one of these: {image_keywords} and wherever image is applicable end your answer with:
+# IMAGE: <room name>
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -21,7 +23,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = "gpt-4.1"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Shared LLM and Embeddings
-llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0, openai_api_key=OPENAI_API_KEY)
+llm = ChatOpenAI(model=OPENAI_MODEL, temperature=0.2, openai_api_key=OPENAI_API_KEY)
 embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
 
@@ -35,37 +37,17 @@ Use the context provided to answer the user query in under 5 bullet points. Foll
 - If the question is about Dholera (development, infrastructure, city growth, etc.), use general knowledge confidently.
 - For questions about hospitals, roads, or civic services without naming Krupal Habitat, assume the query is about Dholera.
 - If asked for map or location → include:
-  📍 [View on Google Maps](https://maps.app.goo.gl/jMBMpq5tEcDVi8ZNA)
+  📍 [View on Google Maps](https://maps.app.goo.gl/yna6fJTuMJsDfoS19?g_st=ipc)
 - Don’t include the location link unless specifically asked.
 
-🏡 For Krupal Habitat-specific queries:
-- Total project size: 22,000 sq. yards
-- Plot sizes: 213–742 sq. yards (mention only range if asked)
-- BSP: ₹8,000/sq yd, Dev Charges: ₹1,500/sq yd
-- PLC (for park-facing/corner plots): 10% of BSP
-- Payment Plan:
-  • 10% of BSP on booking  
-  • 20% of BSP on BBA  
-  • 70% of BSP + other charges on registry
-- Super area includes 35% common dev space  
-  • Carpet area = 0.65 × super area  
-  • Buildable area = 60% of carpet area
-
-💬 If asked about cost:
-- Show a clear price breakdown: BSP, Dev Charges, Total  
-- Mention PLC only if relevant
-
-🛠 If asked about layout:
-- Mention: entrance gate, internal roads, street lights, drainage, power
-
-🌿 If asked about amenities:
-- Mention: clubhouse, swimming pool, landscaped parks, community spaces
 
 📄 confirm:
 - All legal documents are available for review
 project is not rera approved dont mention it.
 
--if they ask for contact number give this number- +91 9971659153
+-if they ask for contact number give this number- +91 9311474661
+
+
 
 
 
@@ -78,18 +60,19 @@ USER:
 {query}
 
 ANSWER:
-- Limit your reply to 4–5 bullet points max.
+- Answer in  minimum number of points
 - before starting points just give **one line** at the top like here are the main points or some other line that seems suitable.
 - Use natural language like a real person speaking.
 -for project legalaties and very specific details strictly use only the context.
+
 - Be short, clear, and persuasive — avoid repeating details.
-- Speak like a friendly human sales executive — not like a robot.
+- Speak like a friendly human conversational sales executive — not like a robot.
 """
 
 RAMVAN_PROMPT = """
 You are a helpful and persuasive real estate sales agent for Ramvan Villas in Uttarakhand — a premium gated plotting project near Jim Corbett National Park.
 
-Use the context provided to answer the user query in under 5 bullet points. Follow these rules:
+ Follow these rules:
 - Use a confident and human tone — like a friendly sales agent.
 - Never say "I don't know". Offer help or a next step.
 -  If asked for map/location → include:
@@ -99,6 +82,7 @@ Use the context provided to answer the user query in under 5 bullet points. Foll
 Avoid long explanations. Be short, clear, and convincing.
 -if they ask for contact number give this number- +91 9971659153
 
+
 CONTEXT:
 {context}
 
@@ -106,12 +90,12 @@ USER:
 {query}
 
 ANSWER:
-- Limit your reply to 4–5 bullet points max.
+- Answer in minimum number of points
 - before starting points just give **one line** at the top like here are the main points or some other line that seems suitable.
 - Use natural language like a real person speaking.
 -for project legalaties and very specific details strictly use only the context.
 - Be short, clear, and persuasive — avoid repeating details.
-- Speak like a friendly human sales executive — not like a robot.
+- Speak like a friendly human converdational sales executive — not like a robot.
 """
 
 
@@ -122,7 +106,7 @@ You are a helpful and persuasive real estate sales agent for Firefly Homes in Ut
 Use the context provided to answer the user query in under 5 bullet points. Follow these rules:
 - Use a confident and human tone — like a friendly sales agent.
 - Never say "I don't know". Offer help or a next step.
--if they ask for contact number give this number- +91 9971659153
+-if they ask for contact number give this number- +91 9311474661
 
 
 Avoid long explanations. Be short, clear, and convincing.
@@ -172,7 +156,7 @@ def _project_cfg(name: str):
         print("🟡 Trying to load FAISS index")
         try:
             vec = FAISS.load_local(
-                os.path.join(BASE_DIR, "krupaldb_faiss"),
+                os.path.join(BASE_DIR, "krupalfinal_faiss"),
                 embedding,
                 allow_dangerous_deserialization=True,
             )
@@ -182,16 +166,27 @@ def _project_cfg(name: str):
             raise
         return dict(
             vector=FAISS.load_local(
-                os.path.join(BASE_DIR, "krupaldb_faiss"),
+                os.path.join(BASE_DIR, "krupalfinal_faiss"),
                 embedding,
                 allow_dangerous_deserialization=True,
             ),
             images={
-                "gated community": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903023/gatedcommunity_gpjff4.jpg",
-                "house": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903025/house_cu9on6.jpg",
-                "clubhouse": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903022/clubhouse_opxfdz.jpg",
-                "krupal habitat": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903024/krupalhabitat_ywpcpp.jpg",
-                "payment plan": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749922165/krupal_payment_soj4mc.jpg",
+                "amenities": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570131/amenities_yxwsos.png",
+                "clubhouse1": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570130/clubhouse1_ftj3be.png",
+                "clubhouse2": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570132/clubhouse2_c9rpm1.png",
+                "entrance gate": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570129/entrance_gate_fqvj9g.png",
+                "garden": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570128/garden_bbapb0.png",
+                "gym1": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570129/gym1_u80pin.png",
+                "gym2": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570127/gym2_zy4wkk.png",
+                "gym3": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570125/gym3_y0bgss.png",
+                "plot size": "",
+                "layout1": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570124/Layout_1_ls7niu.png",
+                "layout2": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570131/Layout_2_rw6gs2.png",
+                "location map": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570123/location_map_svrwg3.png",
+                "masterplan page": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570122/masterplan_page_xolaj0.png",
+                "site office": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570123/Site_office_wy2nqq.png",
+                "surrounding developments": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570123/surrounding_developments_h5rolw.png",
+                "theatre": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752570130/theatre_u6nmdz.png",
             },
             tpl=KRUPAL_PROMPT,
         )
@@ -200,18 +195,33 @@ def _project_cfg(name: str):
         print("Testing 9")
         return dict(
             vector=FAISS.load_local(
-                os.path.join(BASE_DIR, "ramvan_villas_faiss"),
+                os.path.join(BASE_DIR, "ramvan_faiss"),
                 embedding,
                 allow_dangerous_deserialization=True,
             ),
             images={
-                "bedroom": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903320/bedroom_rnp54b.jpg",
-                "living room": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903327/livingroom_xdpba4.jpg",
-                "dining room": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/diningroom_xezi1c.jpg",
-                "villa": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/house_rceotg.jpg",
-                "kitchen": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749903321/diningroom_xezi1c.jpg",
-                "payment plan": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1749922062/ramvan_payment_ychisk.jpg",
-                "masterplan": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1750164243/Layout_qwbaun.jpg",
+                "amenities": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577372/amenities_bwjrvi.png",
+                "bathroom": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577372/Bathroom_akkylf.png",
+                "bedroom": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577371/Bedroom_vqcje1.png",
+                "kitchen": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577369/Kitchen_lsacjy.png",
+                "layout": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577374/layout_vqoqsm.png",
+                "living room": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577367/Living_room_edz5pe.png",
+                "nearby tourist attractions": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577365/nearby_tourist_attractions_gqhhyk.png",
+                "payment plan": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577366/payment_plan_ptx03d.png",
+                "progress1": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577364/progress1_xqo54b.png",
+                "progress2": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577370/progress2_hyt2hr.png",
+                "progress3": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577361/progress3_vsk3xz.jpg",
+                "ramvan map and nearby cities": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577361/ramvan_map_and_nearby_cities_hcz8hd.png",
+                "sample villa1": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577361/sample_villa1_t5r1xm.jpg",
+                "sample villa2": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577358/sample_villa2_dhex89.jpg",
+                "sample villa3": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577358/sample_villa3_c9y6po.jpg",
+                "sample villa4": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577357/sample_villa4_k80fvq.jpg",
+                "sample villa5": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577356/sample_villa5_u49opi.jpg",
+                "sample villa6": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577930/sample_villa6_rd8upo.jpg",
+                "sample villa7": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577927/sample_villa7_ux1u1m.jpg",
+                "sample villa8": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577926/sample_villa8_lgvxwv.jpg",
+                "sample villa9": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577356/sample_villa9_qefin3.jpg",
+                "sample villa10": "https://res.cloudinary.com/dqlrfkgt0/image/upload/v1752577355/sample_villa10_u70edd.jpg",
             },
             tpl=RAMVAN_PROMPT,
         )
@@ -293,7 +303,7 @@ def generate_response(project: str, history: list[dict], voice_mode: bool):
     #     return dict(text="Query blocked due to policy.", image_url=None)
 
     # 2 vector context --------------------------------------------------------
-    docs = cfg["vector"].similarity_search(user_input, k=5)
+    docs = cfg["vector"].similarity_search(user_input, k=3)
     context = "\n".join(d.page_content for d in docs)
     VOICE_PROMPT_TEMPLATE = ""
     if voice_mode:
@@ -326,7 +336,7 @@ You are speaking aloud to a human in voice mode.
         + cfg["tpl"].format(
             context=context,
             query=user_input,
-            image_keywords="",  # ", ".join(cfg["images"].keys()),
+            image_keywords=", ".join(cfg["images"].keys()),
         )
         + VOICE_PROMPT_TEMPLATE
     )
@@ -344,6 +354,7 @@ You are speaking aloud to a human in voice mode.
     #     keyword = match.group(1).strip().lower()
     #     img_url = cfg["images"].get(keyword)
     #     if img_url:
+
     #         answer = re.sub(
     #             r"image:\s*[\w\s]*", "", answer, flags=re.IGNORECASE
     #         ).strip()
