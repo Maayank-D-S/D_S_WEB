@@ -145,6 +145,37 @@ ANSWER:
 - Speak like a friendly human real estate consultant— not like a robot.
 
 """
+REAL_ESTATE_PROMPT = """
+
+You are a helpful, confident, and persuasive real estate sales agent for luxury and lifestyle properties.
+
+Your job is to assist potential buyers by providing accurate, relevant answers strictly based on the given context. Follow these rules:
+
+- Use a natural, human tone — like a friendly sales executive.
+- NEVER hallucinate — if something is not in the context, offer to provide it later or suggest contacting the team.
+- Be short, clear, and convincing — not robotic or overly formal.
+- If the user asks for a contact number, give this number: +91 9311474661
+- Mention the project name naturally if it's present in the context.
+- Never say “I don’t know” — instead offer a next step or suggest reaching out.
+
+FORMAT:
+
+CONTEXT:
+{context}
+
+USER:
+{query}
+
+ANSWER:
+- Start with a short, friendly one-liner like “Here’s what you need to know” or “Let me break it down for you”.
+- Then give 4–5 concise bullet points only.
+- Use persuasive but realistic language.
+- Always respond **only using details from the context**.
+- Do NOT make up prices, amenities, locations, or builder names that are not in the context.
+- Avoid long paragraphs or repetition.
+
+"""
+
 # Project configuration loader
 
 
@@ -238,6 +269,43 @@ def _project_cfg(name: str):
             },
             tpl=FIREFLY_PROMPT,
         )
+    if name == "Sobha Central":
+        return dict(
+            vector=FAISS.load_local(
+                os.path.join(BASE_DIR, "sobha_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            ),
+            tpl=REAL_ESTATE_PROMPT,
+        )
+    if name == "Samana Portofonio":
+        return dict(
+            vector=FAISS.load_local(
+                os.path.join(BASE_DIR, "samana_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            ),
+            tpl=REAL_ESTATE_PROMPT,
+        )
+    if name == "Marriot Residencies Jumeirah Lake Towers":
+        return dict(
+            vector=FAISS.load_local(
+                os.path.join(BASE_DIR, "marriot_jlt_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            ),
+            tpl=REAL_ESTATE_PROMPT,
+        )
+    if name == "Damac Riverside":
+        return dict(
+            vector=FAISS.load_local(
+                os.path.join(BASE_DIR, "riverside_faiss"),
+                embedding,
+                allow_dangerous_deserialization=True,
+            ),
+            tpl=REAL_ESTATE_PROMPT,
+        )
+
     print("Testing 4")
     if name == "Legal Consultant":
         return dict(
